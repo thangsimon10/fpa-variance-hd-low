@@ -1,0 +1,56 @@
+createOrReplace
+
+	ref table tbl_dim_line
+
+		column line_label
+			dataType: string
+			sourceColumn: line_label
+			sortByColumn: line_sort
+			summarizeBy: none
+
+	ref table tbl_fact_pnl
+
+		measure 'Revenue A/F' = CALCULATE ( [Act/Fcst], tbl_dim_line[line] = "revenue" )
+			formatString: $#,##0
+
+		measure 'Revenue Budget' = CALCULATE ( [Budget], tbl_dim_line[line] = "revenue" )
+			formatString: $#,##0
+
+		measure 'Gross Profit A/F' = CALCULATE ( [Act/Fcst], tbl_dim_line[line] = "gross_profit" )
+			formatString: $#,##0
+
+		measure 'Gross Profit Budget' = CALCULATE ( [Budget], tbl_dim_line[line] = "gross_profit" )
+			formatString: $#,##0
+
+		measure 'Opex A/F' = CALCULATE ( [Act/Fcst], tbl_dim_line[line] = "opex" )
+			formatString: $#,##0
+
+		measure 'Opex Budget' = CALCULATE ( [Budget], tbl_dim_line[line] = "opex" )
+			formatString: $#,##0
+
+		measure 'Op Income A/F' = CALCULATE ( [Act/Fcst], tbl_dim_line[line] = "operating_income" )
+			formatString: $#,##0
+
+		measure 'Op Income Budget' = CALCULATE ( [Budget], tbl_dim_line[line] = "operating_income" )
+			formatString: $#,##0
+
+		measure 'Net Income A/F' = CALCULATE ( [Act/Fcst], tbl_dim_line[line] = "net_income" )
+			formatString: $#,##0
+
+		measure 'Net Income Budget' = CALCULATE ( [Budget], tbl_dim_line[line] = "net_income" )
+			formatString: $#,##0
+
+		measure 'Op Income Var (fav +)' = [Op Income A/F] - [Op Income Budget]
+			formatString: +$#,##0"M";-$#,##0"M";$0"M"
+
+		measure 'Revenue Var (fav +)' = [Revenue A/F] - [Revenue Budget]
+			formatString: +$#,##0"M";-$#,##0"M";$0"M"
+
+		measure 'Opex Var (fav +)' = [Opex Budget] - [Opex A/F]
+			formatString: +$#,##0"M";-$#,##0"M";$0"M"
+
+		measure 'Net Income Var (fav +)' = [Net Income A/F] - [Net Income Budget]
+			formatString: +$#,##0"M";-$#,##0"M";$0"M"
+
+		measure 'GM Var bps' = ( [GM % A/F] - [GM % Budget] ) * 10000
+			formatString: +0" bps";-0" bps";0" bps"

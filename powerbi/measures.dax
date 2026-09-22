@@ -1,0 +1,68 @@
+// measures.dax  -  FY2026 Budget vs Actual vs Forecast (HD vs LOW)
+// Paste each measure into Power BI: semantic model > Open data model >
+// select table tbl_fact_pnl > New measure. Amounts are $ millions.
+// "Act/Fcst" = actuals for closed quarters (Q1-Q2) + forecast for open ones (Q3-Q4).
+
+// ---------------------------------------------------------------- base
+Actual =
+CALCULATE ( SUM ( tbl_fact_pnl[amount_musd] ), tbl_dim_scenario[scenario] = "Actual" )
+
+Budget =
+CALCULATE ( SUM ( tbl_fact_pnl[amount_musd] ), tbl_dim_scenario[scenario] = "Budget" )
+
+Act/Fcst =
+CALCULATE ( SUM ( tbl_fact_pnl[amount_musd] ), tbl_dim_scenario[scenario] = "Forecast" )
+
+// Favourable is positive on every line: costs flip sign via tbl_dim_line[sign].
+Variance (fav +) =
+SUMX (
+    VALUES ( tbl_dim_line[line] ),
+    VAR s = CALCULATE ( MAX ( tbl_dim_line[sign] ) )
+    RETURN ( [Act/Fcst] - [Budget] ) * s
+)
+
+Variance % =
+DIVIDE ( [Variance (fav +)], ABS ( [Budget] ) )
+
+PY Actual =
+CALCULATE (
+    [Actual],
+    REMOVEFILTERS ( tbl_dim_period ),
+    tbl_dim_period[fiscal_year] = 2025,
+    TREATAS ( VALUES ( tbl_dim_period[fq] ), tbl_dim_period[fq] )
+)
+
+YoY % =
+DIVIDE ( [Act/Fcst], [PY Actual] ) - 1
+
+// ---------------------------------------------------------------- lines
+Revenue A/F      = CALCULATE ( [Act/Fcst], tbl_dim_line[line] = "revenue" )
+Revenue Budget   = CALCULATE ( [Budget],   tbl_dim_line[line] = "revenue" )
+Gross Profit A/F = CALCULATE ( [Act/Fcst], tbl_dim_line[line] = "gross_profit" )
+Gross Profit Budget = CALCULATE ( [Budget], tbl_dim_line[line] = "gross_profit" )
+Opex A/F         = CALCULATE ( [Act/Fcst], tbl_dim_line[line] = "opex" )
+Opex Budget      = CALCULATE ( [Budget],   tbl_dim_line[line] = "opex" )
+Op Income A/F    = CALCULATE ( [Act/Fcst], tbl_dim_line[line] = "operating_income" )
+Op Income Budget = CALCULATE ( [Budget],   tbl_dim_line[line] = "operating_income" )
+Net Income A/F   = CALCULATE ( [Act/Fcst], tbl_dim_line[line] = "net_income" )
+Net Income Budget = CALCULATE ( [Budget],  tbl_dim_line[line] = "net_income" )
+
+Op Income Var (fav +) = [Op Income A/F] - [Op Income Budget]
+
+// ---------------------------------------------------------------- margins
+GM % A/F     = DIVIDE ( [Gross Profit A/F], [Revenue A/F] )
+GM % Budget  = DIVIDE ( [Gross Profit Budget], [Revenue Budget] )
+GM Var bps   = ( [GM % A/F] - [GM % Budget] ) * 10000
+OM % A/F     = DIVIDE ( [Op Income A/F], [Revenue A/F] )
+OM % Budget  = DIVIDE ( [Op Income Budget], [Revenue Budget] )
+OM Var bps   = ( [OM % A/F] - [OM % Budget] ) * 10000
+
+// ---------------------------------------------------------------- labels
+Period Status = SELECTEDVALUE ( tbl_dim_period[status] )
+
+Headline =
+VAR v = [Op Income Var (fav +)]
+RETURN
+    SELECTEDVALUE ( tbl_dim_company[company], "Both companies" ) & ": FY2026 operating income outlook "
+        & FORMAT ( ABS ( v ) / 1000, "$0.00" ) & "B "
+        & IF ( v >= 0, "above", "below" ) & " budget"

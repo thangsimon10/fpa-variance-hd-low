@@ -1,0 +1,33 @@
+createOrReplace
+
+	ref table tbl_fact_pnl
+
+		measure 'Revenue (FY outlook)' = DIVIDE ( [Revenue A/F], 1000 )
+			formatString: $#,##0.0"B"
+
+		measure 'Gross margin (FY outlook)' = [GM % A/F]
+			formatString: 0.0%
+
+		measure 'Opex (FY outlook)' = DIVIDE ( [Opex A/F], 1000 )
+			formatString: $#,##0.0"B"
+
+		measure 'Operating income (FY outlook)' = DIVIDE ( [Op Income A/F], 1000 )
+			formatString: $#,##0.0"B"
+
+		measure 'Net income (FY outlook)' = DIVIDE ( [Net Income A/F], 1000 )
+			formatString: $#,##0.0"B"
+
+		measure 'Revenue vs budget' = DIVIDE ( [Revenue Var (fav +)], 1000 )
+			formatString: +$#,##0.00"B";-$#,##0.00"B";$0.00"B"
+
+		measure 'Gross margin vs budget' = [GM Var bps]
+			formatString: +0" bps";-0" bps";0" bps"
+
+		measure 'Opex vs budget (fav +)' = DIVIDE ( [Opex Var (fav +)], 1000 )
+			formatString: +$#,##0.00"B";-$#,##0.00"B";$0.00"B"
+
+		measure 'Operating income vs budget' = DIVIDE ( [Op Income Var (fav +)], 1000 )
+			formatString: +$#,##0.00"B";-$#,##0.00"B";$0.00"B"
+
+		measure 'Net income vs budget' = DIVIDE ( [Net Income Var (fav +)], 1000 )
+			formatString: +$#,##0.00"B";-$#,##0.00"B";$0.00"B"

@@ -1,0 +1,108 @@
+createOrReplace
+
+	relationship fact_to_company
+		fromColumn: tbl_fact_pnl.ticker
+		toColumn: tbl_dim_company.ticker
+
+	relationship fact_to_period
+		fromColumn: tbl_fact_pnl.period_key
+		toColumn: tbl_dim_period.period_key
+
+	relationship fact_to_line
+		fromColumn: tbl_fact_pnl.line
+		toColumn: tbl_dim_line.line
+
+	relationship fact_to_scenario
+		fromColumn: tbl_fact_pnl.scenario
+		toColumn: tbl_dim_scenario.scenario
+
+	relationship commentary_to_company
+		fromColumn: tbl_commentary.ticker
+		toColumn: tbl_dim_company.ticker
+
+	ref table tbl_fact_pnl
+
+		measure Actual = CALCULATE ( SUM ( tbl_fact_pnl[amount_musd] ), tbl_dim_scenario[scenario] = "Actual" )
+			formatString: #,##0
+
+		measure Budget = CALCULATE ( SUM ( tbl_fact_pnl[amount_musd] ), tbl_dim_scenario[scenario] = "Budget" )
+			formatString: #,##0
+
+		measure 'Act/Fcst' = CALCULATE ( SUM ( tbl_fact_pnl[amount_musd] ), tbl_dim_scenario[scenario] = "Forecast" )
+			formatString: #,##0
+
+		measure 'Variance (fav +)' = SUMX ( VALUES ( tbl_dim_line[line] ), VAR s = CALCULATE ( MAX ( tbl_dim_line[sign] ) ) RETURN ( [Act/Fcst] - [Budget] ) * s )
+			formatString: +#,##0;-#,##0;0
+
+		measure 'Variance %' = DIVIDE ( [Variance (fav +)], ABS ( [Budget] ) )
+			formatString: +0.0%;-0.0%;0.0%
+
+		measure 'PY Actual' = CALCULATE ( [Actual], REMOVEFILTERS ( tbl_dim_period ), tbl_dim_period[fiscal_year] = 2025, TREATAS ( VALUES ( tbl_dim_period[fq] ), tbl_dim_period[fq] ) )
+			formatString: #,##0
+
+		measure 'YoY %' = DIVIDE ( [Act/Fcst], [PY Actual] ) - 1
+			formatString: +0.0%;-0.0%;0.0%
+
+		measure 'Revenue A/F' = CALCULATE ( [Act/Fcst], tbl_dim_line[line] = "revenue" )
+			formatString: #,##0
+
+		measure 'Revenue Budget' = CALCULATE ( [Budget], tbl_dim_line[line] = "revenue" )
+			formatString: #,##0
+
+		measure 'Gross Profit A/F' = CALCULATE ( [Act/Fcst], tbl_dim_line[line] = "gross_profit" )
+			formatString: #,##0
+
+		measure 'Gross Profit Budget' = CALCULATE ( [Budget], tbl_dim_line[line] = "gross_profit" )
+			formatString: #,##0
+
+		measure 'Opex A/F' = CALCULATE ( [Act/Fcst], tbl_dim_line[line] = "opex" )
+			formatString: #,##0
+
+		measure 'Opex Budget' = CALCULATE ( [Budget], tbl_dim_line[line] = "opex" )
+			formatString: #,##0
+
+		measure 'Op Income A/F' = CALCULATE ( [Act/Fcst], tbl_dim_line[line] = "operating_income" )
+			formatString: #,##0
+
+		measure 'Op Income Budget' = CALCULATE ( [Budget], tbl_dim_line[line] = "operating_income" )
+			formatString: #,##0
+
+		measure 'Net Income A/F' = CALCULATE ( [Act/Fcst], tbl_dim_line[line] = "net_income" )
+			formatString: #,##0
+
+		measure 'Net Income Budget' = CALCULATE ( [Budget], tbl_dim_line[line] = "net_income" )
+			formatString: #,##0
+
+		measure 'Op Income Var (fav +)' = [Op Income A/F] - [Op Income Budget]
+			formatString: +#,##0;-#,##0;0
+
+		measure 'Revenue Var (fav +)' = [Revenue A/F] - [Revenue Budget]
+			formatString: +#,##0;-#,##0;0
+
+		measure 'Opex Var (fav +)' = [Opex Budget] - [Opex A/F]
+			formatString: +#,##0;-#,##0;0
+
+		measure 'Net Income Var (fav +)' = [Net Income A/F] - [Net Income Budget]
+			formatString: +#,##0;-#,##0;0
+
+		measure 'GM % A/F' = DIVIDE ( [Gross Profit A/F], [Revenue A/F] )
+			formatString: 0.0%
+
+		measure 'GM % Budget' = DIVIDE ( [Gross Profit Budget], [Revenue Budget] )
+			formatString: 0.0%
+
+		measure 'GM Var bps' = ( [GM % A/F] - [GM % Budget] ) * 10000
+			formatString: +#,##0;-#,##0;0
+
+		measure 'OM % A/F' = DIVIDE ( [Op Income A/F], [Revenue A/F] )
+			formatString: 0.0%
+
+		measure 'OM % Budget' = DIVIDE ( [Op Income Budget], [Revenue Budget] )
+			formatString: 0.0%
+
+		measure 'OM Var bps' = ( [OM % A/F] - [OM % Budget] ) * 10000
+			formatString: +#,##0;-#,##0;0
+
+		measure 'Period Status' = SELECTEDVALUE ( tbl_dim_period[status] )
+
+		measure Headline = VAR v = [Op Income Var (fav +)] RETURN SELECTEDVALUE ( tbl_dim_company[company], "Both companies" ) & ": FY2026 operating income outlook " & FORMAT ( ABS ( v ) / 1000, "$0.00" ) & "B " & IF ( v >= 0, "above", "below" ) & " budget"
